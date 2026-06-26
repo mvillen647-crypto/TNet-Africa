@@ -1,28 +1,20 @@
-/* ==========================================
-   Navigation
-========================================== */
-
 import { navigate } from "./router.js";
 
-export function initNavigation(){
+export function initNavigation() {
 
-    const buttons =
-    document.querySelectorAll(".nav-btn");
+  const buttons = document.querySelectorAll(".nav-btn");
 
-    buttons.forEach(button=>{
+  buttons.forEach(btn => {
 
-        button.addEventListener("click",()=>{
+    btn.addEventListener("click", () => {
 
-            buttons.forEach(btn=>
-                btn.classList.remove("active")
-            );
+      buttons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
 
-            button.classList.add("active");
-
-            navigate(button.dataset.page);
-
-        });
+      navigate(btn.dataset.page);
 
     });
 
-                            }
+  });
+
+}
