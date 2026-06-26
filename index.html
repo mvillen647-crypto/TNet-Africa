@@ -4,31 +4,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TNET AI</title>
-  <link rel="stylesheet" href="style.css"/>
+
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
 
 <body>
 
-  <!-- Loader -->
+  <!-- 🔥 LOADER -->
   <div id="loader">
-    <div class="loader-logo">T</div>
-    <h1>TNET AI</h1>
-    <p>Loading...</p>
+    <div class="spinner"></div>
+    <p>TNET loading...</p>
   </div>
 
-  <!-- App -->
+  <!-- 🧠 APP ROOT (SPA renders here) -->
   <div id="app"></div>
 
-  <!-- Bottom Nav -->
-  <nav class="bottom-nav">
-    <button class="nav-btn" data-page="home">Home</button>
-    <button class="nav-btn" data-page="scan">Scan</button>
-    <button class="nav-btn" data-page="feed">Feed</button>
-    <button class="nav-btn" data-page="analysis">Analysis</button>
-    <button class="nav-btn" data-page="profile">Profile</button>
+  <!-- 🔻 BOTTOM NAV -->
+  <nav id="bottomNav">
+    <button data-page="home">Home</button>
+    <button data-page="scan">Scan</button>
+    <button data-page="feed">Feed</button>
+    <button data-page="analysis">Analysis</button>
+    <button data-page="profile">Profile</button>
   </nav>
 
-  <script type="module" src="script.js"></script>
+  <!-- JS CORE -->
+  <script type="module" src="./js/app.js"></script>
 
 </body>
 </html>
