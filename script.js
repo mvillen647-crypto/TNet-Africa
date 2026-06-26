@@ -3,31 +3,22 @@ import { initNavigation } from "./js/navigation.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    console.log("TNET STARTED");
+  console.log("TNET STARTED");
 
-    initNavigation();
+  initNavigation();
+  initRouter();
 
-    try {
-        initRouter();
-    } catch (err) {
-        console.error("ROUTER ERROR:", err);
-    }
+  const loader = document.getElementById("loader");
 
-    const loader = document.getElementById("loader");
-
-    if (!loader) {
-        console.error("LOADER NOT FOUND");
-        return;
-    }
-
+  if (loader) {
     setTimeout(() => {
+      loader.style.opacity = "0";
 
-        loader.style.opacity = "0";
-
-        setTimeout(() => {
-            loader.remove();
-        }, 300);
+      setTimeout(() => {
+        loader.remove();
+      }, 300);
 
     }, 800);
+  }
 
 });
