@@ -1,6 +1,5 @@
 /* ==========================================
-   TNET AI - ROUTER ENGINE v1.0
-   Pages: Home, Scan, Feed, Analysis, Profile
+   TNET AI - ROUTER ENGINE v1.1 (FIXED)
 ========================================== */
 
 import { renderHome } from "./pages/home.js";
@@ -9,20 +8,21 @@ import { renderFeed } from "./pages/feed.js";
 import { renderAnalysis } from "./pages/analysis.js";
 import { renderProfile } from "./pages/profile.js";
 
-const app = document.getElementById("app");
+/* =========================
+   SAFE APP ACCESS
+========================= */
+
+function getApp() {
+    return document.getElementById("app");
+}
 
 /* =========================
    INIT ROUTER
 ========================= */
 
 export function initRouter() {
-
-    // load page on first visit
     handleRoute();
-
-    // listen for navigation changes
     window.addEventListener("hashchange", handleRoute);
-
 }
 
 /* =========================
@@ -30,6 +30,14 @@ export function initRouter() {
 ========================= */
 
 function handleRoute() {
+
+    const app = getApp();
+
+    // safety check (prevents splash freeze)
+    if (!app) {
+        console.error("❌ #app not found in DOM");
+        return;
+    }
 
     const route = window.location.hash || "#home";
 
@@ -60,9 +68,7 @@ function handleRoute() {
         default:
             renderHome(app);
             break;
-
     }
-
 }
 
 /* =========================
@@ -72,6 +78,8 @@ function handleRoute() {
 function setActiveNav(route) {
 
     const buttons = document.querySelectorAll(".nav-btn");
+
+    if (!buttons.length) return;
 
     buttons.forEach(btn => {
 
@@ -84,7 +92,6 @@ function setActiveNav(route) {
         }
 
     });
-
 }
 
 /* =========================
@@ -93,6 +100,11 @@ function setActiveNav(route) {
 
 export function navigate(page) {
 
-    window.location.hash = page;
+    if (!page) return;
 
+    if (!page.startsWith("#")) {
+        page = "#" + page;
+    }
+
+    window.location.hash = page;
 }
