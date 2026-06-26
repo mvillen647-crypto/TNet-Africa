@@ -74,3 +74,24 @@ body {
   border-radius: 12px;
   border: 1px solid #333;
 }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.card {
+  background: #1a1a1a;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #333;
+}
+
+button {
+  padding: 10px;
+  background: #ff6b00;
+  border: none;
+  color: white;
+  margin-top: 10px;
+  border-radius: 8px;
+}
