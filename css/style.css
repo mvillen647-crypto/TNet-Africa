@@ -62,3 +62,15 @@ body {
 #bottomNav button:hover {
   color: #ff6b00;
 }
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.card {
+  background: #1a1a1a;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #333;
+}
