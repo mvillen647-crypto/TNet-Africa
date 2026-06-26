@@ -1,3 +1,4 @@
+import Busboy from "busboy";
 import axios from "axios";
 import FormData from "form-data";
 
@@ -7,46 +8,259 @@ export const config = {
   }
 };
 
-export default async function handler(req, res) {
+/* =========================
+   MAIN HANDLER
+========================= */
+export default function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Method Not Allowed"
+      error: "Only POST method allowed"
     });
   }
 
-  try {
+  const busboy = Busboy({
+    headers: req.headers,
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+  });
 
-    const apiUser = process.env.SIGHTENGINE_API_USER;
-    const apiSecret = process.env.SIGHTENGINE_API_SECRET;
+  let fileBuffer = null;
+  let fileMime = null;
+  let fileName = null;
 
-    if (!apiUser || !apiSecret) {
-      return res.status(500).json({
+  /* =========================
+     FILE RECEIVING
+  ========================= */
+  busboy.on("file", (fieldname, file, info) => {
+    const { filename, mimeType } = info;
+
+    fileName = filename;
+    fileMime = mimeType;
+
+    const chunks = [];
+
+    file.on("data", (data) => {
+      chunks.push(data);
+    });
+
+    file.on("end", () => {
+      fileBuffer = Buffer.concat(chunks);
+    });
+  });
+
+  /* =========================
+     FINISH REQUEST
+  ========================= */
+  busboy.on("close", async () => {
+
+    if (!fileBuffer) {
+      return res.status(400).json({
         success: false,
-        error: "Missing Sightengine environment variables."
+        error: "No file uploaded"
       });
     }
 
-    // Hapa tutasoma multipart/form-data kutoka kwa request.
-    // Kwenye hatua inayofuata tutaongeza parser (mfano Busboy)
-    // ili kupata image file salama.
-
+    // 👉 Next step: validation + Sightengine request
     return res.status(200).json({
       success: true,
-      message: "API server is ready.",
-      nextStep: "Connect multipart parser then send image to Sightengine."
+      message: "File received successfully",
+      file: {
+        name: fileName,
+        mime: fileMime,
+        size: fileBuffer.length
+      },
+      nextStep: "Ready for Sightengine processing"
     });
 
-  } catch (err) {
+  });
 
-    console.error(err);
-
+  busboy.on("error", (err) => {
     return res.status(500).json({
       success: false,
       error: err.message
     });
+  });
 
+  req.pipe(busboy);
+        }
+busboy.on("close", async () => {
+
+  if (!fileBuffer) {
+    return res.status(400).json({
+      success: false,
+      error: "No file uploaded"
+    });
   }
 
+  /* =========================
+     VALIDATION LAYER
+  ========================= */
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ];
+
+  // 1. Check MIME type
+  if (!allowedTypes.includes(fileMime)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid file type. Only JPG, PNG, WEBP allowed."
+    });
+  }
+
+  // 2. Check file size
+  if (fileBuffer.length > 10 * 1024 * 1024) {
+    return res.status(400).json({
+      success: false,
+      error: "File too large. Max 10MB allowed."
+    });
+  }
+
+  // 3. Convert to base64 (required by Sightengine)
+  const base64Image = fileBuffer.toString("base64");
+
+  /* =========================
+     PREPARE FOR NEXT STEP
+  ========================= */
+
+  return res.status(200).json({
+    success: true,
+    message: "File validated successfully",
+    debug: {
+      name: fileName,
+      mime: fileMime,
+      size: fileBuffer.length
+    },
+    prepared: {
+      base64: base64Image.substring(0, 50) + "...",
+      note: "Ready for Sightengine API"
+    },
+    nextStep: "Sightengine integration (PART 3)"
+  });
+
+});
+  // =========================
+  // BUILD FORM DATA
+  // =========================
+  const form = new FormData();
+
+  form.append("media", fileBuffer, {
+    filename: fileName || "image.jpg",
+    contentType: fileMime
+  });
+
+  form.append("models", "genai, nudity-2.1, faces, weapon");
+
+  form.append("api_user", process.env.SIGHTENGINE_API_USER);
+  form.append("api_secret", process.env.SIGHTENGINE_API_SECRET);
+
+  try {
+
+    // =========================
+    // CALL SIGHTENGINE
+    // =========================
+    const response = await axios.post(
+      "https://api.sightengine.com/1.0/check.json",
+      form,
+      {
+        headers: form.getHeaders(),
+        timeout: 15000
+      }
+    );
+
+    const data = response.data;
+
+    // =========================
+    // CLEAN OUTPUT
+    // =========================
+    return res.status(200).json({
+      success: true,
+      message: "Scan completed successfully",
+      data: {
+        ai_generated: data?.type?.ai_generated || 0,
+        nsfw: data?.nudity || {},
+        faces: data?.faces || [],
+        weapons: data?.weapon || {},
+        raw: data
+      }
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+      success: false,
+      error: "Sightengine API failed",
+      details: error.message
+    });
+
+  }
+const data = response.data;
+
+/* =========================
+   AI ANALYSIS LAYER
+========================= */
+
+const aiScore = data?.type?.ai_generated || 0;
+const nudityScore = data?.nudity?.raw || 0;
+const weaponDetected = data?.weapon?.classes?.length > 0;
+const faceCount = data?.faces?.length || 0;
+
+/* =========================
+   HUMAN READABLE RESULT
+========================= */
+
+let verdict = "Safe Image";
+let riskLevel = "Low";
+let explanation = [];
+
+// AI GENERATED CHECK
+if (aiScore > 0.8) {
+  verdict = "⚠️ Likely AI Generated Image";
+  riskLevel = "High";
+  explanation.push("High probability this image was generated by AI.");
 }
+
+// NSFW CHECK
+if (nudityScore > 0.6) {
+  verdict = "🔞 Inappropriate Content Detected";
+  riskLevel = "High";
+  explanation.push("Contains explicit or unsafe content.");
+}
+
+// WEAPON CHECK
+if (weaponDetected) {
+  verdict = "⚠️ Weapon Detected";
+  riskLevel = "Critical";
+  explanation.push("Weapon-related objects detected in image.");
+}
+
+// FACE INFO
+if (faceCount > 0) {
+  explanation.push(`${faceCount} human face(s) detected.`);
+}
+
+if (explanation.length === 0) {
+  explanation.push("No safety risks detected. Image appears normal.");
+}
+
+/* =========================
+   FINAL RESPONSE
+========================= */
+
+return res.status(200).json({
+  success: true,
+  verdict,
+  riskLevel,
+  explanation,
+  scores: {
+    ai_generated: aiScore,
+    nudity: nudityScore,
+    faces: faceCount
+  },
+  raw: data
+});
